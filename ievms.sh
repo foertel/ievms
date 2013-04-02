@@ -124,7 +124,10 @@ build_ievm() {
             archive="IE6_WinXP.zip"
             unit="10"
             ;;
-        9|10) os="Win7" ;;
+        9|10)
+            os="Win7"
+            archive="IE9_Win7.zip"
+            ;;
         *) fail "Invalid IE version: ${1}" ;;
     esac
 
@@ -180,7 +183,7 @@ build_ievm() {
     VBoxManage snapshot "${vm}" take clean --description "The initial VM state"
 }
 
-build_ievm_xp() {
+build_modified_ievm() {
     sleep_wait="10"
 
     installer=`basename "${2}"`
@@ -192,29 +195,32 @@ build_ievm_xp() {
         fail "Failed to download ${url} to ${ievms_home}/${installer} using 'curl', error code ($?)"
     fi
 
-    iso_url="https://dl.dropbox.com/u/463624/ievms-control.iso"
-    dev_iso=`pwd`/ievms-control.iso # Use local iso if in ievms dev root
-    if [[ -f "${dev_iso}" ]]; then iso=$dev_iso; else iso="${ievms_home}/ievms-control.iso"; fi
-    log "Downloading ievms ISO from ${iso_url}"
-    if [[ ! -f "${iso}" ]] && ! curl ${curl_opts} -L "${iso_url}" -o "${iso}"
+    if [ "${os}" == "WinXP" ]
     then
-        fail "Failed to download ${iso_url} to ${ievms_home}/${iso} using 'curl', error code ($?)"
+        iso_url="https://dl.dropbox.com/u/463624/ievms-control.iso"
+        dev_iso=`pwd`/ievms-control.iso # Use local iso if in ievms dev root
+        if [[ -f "${dev_iso}" ]]; then iso=$dev_iso; else iso="${ievms_home}/ievms-control.iso"; fi
+        log "Downloading ievms ISO from ${iso_url}"
+        if [[ ! -f "${iso}" ]] && ! curl ${curl_opts} -L "${iso_url}" -o "${iso}"
+        then
+            fail "Failed to download ${iso_url} to ${ievms_home}/${iso} using 'curl', error code ($?)"
+        fi
+
+        log "Attaching ievms.iso"
+        VBoxManage storageattach "${vm}" --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium "${iso}"
+
+        log "Starting VM ${vm}"
+        VBoxManage startvm "${vm}" --type headless
+
+        log "Waiting for ${vm} to shutdown..."
+        x="0" ; until [ "${x}" != "0" ]; do
+          sleep "${sleep_wait}"
+          VBoxManage list runningvms | grep "${vm}" >/dev/null && x=$? || x=$?
+        done
+
+        log "Ejecting ievms.iso"
+        VBoxManage modifyvm "${vm}" --dvd none
     fi
-
-    log "Attaching ievms.iso"
-    VBoxManage storageattach "${vm}" --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium "${iso}"
-
-    log "Starting VM ${vm}"
-    VBoxManage startvm "${vm}" --type headless
-
-    log "Waiting for ${vm} to shutdown..."
-    x="0" ; until [ "${x}" != "0" ]; do
-      sleep "${sleep_wait}"
-      VBoxManage list runningvms | grep "${vm}" >/dev/null && x=$? || x=$?
-    done
-
-    log "Ejecting ievms.iso"
-    VBoxManage modifyvm "${vm}" --dvd none
 
     log "Starting VM ${vm}"
     VBoxManage startvm "${vm}" --type headless
@@ -245,13 +251,15 @@ build_ievm_xp() {
 }
 
 build_ievm_ie7() {
-    if [ "${reuse_xp}" != "yes" ]; then return; fi
-    build_ievm_xp 7 "http://download.microsoft.com/download/3/8/8/38889dc1-848c-4bf2-8335-86c573ad86d9/IE7-WindowsXP-x86-enu.exe"
+    build_modified_ievm 7 "http://download.microsoft.com/download/3/8/8/38889dc1-848c-4bf2-8335-86c573ad86d9/IE7-WindowsXP-x86-enu.exe"
 }
 
 build_ievm_ie8() {
-    if [ "${reuse_xp}" != "yes" ]; then return; fi
-    build_ievm_xp 8 "http://download.microsoft.com/download/C/C/0/CC0BD555-33DD-411E-936B-73AC6F95AE11/IE8-WindowsXP-x86-ENU.exe"
+    build_modified_ievm 8 "http://download.microsoft.com/download/C/C/0/CC0BD555-33DD-411E-936B-73AC6F95AE11/IE8-WindowsXP-x86-ENU.exe"
+}
+
+build_ievm_ie10() {
+    build_modified_ievm 10 "http://download.microsoft.com/download/8/A/C/8AC7C482-BC74-492E-B978-7ED04900CEDE/IE10-Windows6.1-x86-en-us.exe"
 }
 
 cleanup() {
