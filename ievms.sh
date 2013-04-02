@@ -119,19 +119,12 @@ build_ievm() {
     unset archive
     unset unit
     case $1 in
-        6|7|8)
+        7|8)
             os="WinXP"
-            if [ "${reuse_xp}" != "yes" ]
-            then
-                if [ "$1" == "7" ]; then os="Vista"; fi
-                if [ "$1" == "8" ]; then os="Win7"; fi
-            else
-                archive="IE6_WinXP.zip"
-                unit="10"
-            fi
+            archive="IE6_WinXP.zip"
+            unit="10"
             ;;
-        9) os="Win7" ;;
-        10) os="Win8" ;;
+        9|10) os="Win7" ;;
         *) fail "Invalid IE version: ${1}" ;;
     esac
 
@@ -141,7 +134,8 @@ build_ievm() {
     unit=${unit:-"11"}
     ova=`basename "${archive/_/ - }" .zip`.ova
     url="http://virtualization.modern.ie/vhd/IEKitV1_Final/VirtualBox/OSX/${archive}"
-    
+    rdpPort=${portPrefix:-"60"}$(printf '%02i' ${1})
+
     log "Checking for existing OVA at ${ievms_home}/${ova}"
     if [[ ! -f "${ova}" ]]
     then
@@ -160,18 +154,25 @@ build_ievm() {
     fi
 
     log "Checking for existing ${vm} VM"
-    if ! VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null
+    if VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null
     then
-        disk_path="${ievms_home}/${vm}-disk1.vmdk"
-        log "Creating ${vm} VM (disk: ${disk_path})"
-        VBoxManage import "${ova}" --vsys 0 --vmname "${vm}" --unit "${unit}" --disk "${disk_path}"
-
-        log "Building ${vm} VM"
-        declare -F "build_ievm_ie${1}" && "build_ievm_ie${1}"
-        
-        log "Creating clean snapshot"
-        VBoxManage snapshot "${vm}" take clean --description "The initial VM state"
+        log "Deleting old ${vm}"
+        VBoxManage unregistervm "${vm}" --delete
+        rm -f ${ievms_home}/${vm}-disk1.vmdk
     fi
+
+    disk_path="${ievms_home}/${vm}-disk1.vmdk"
+    log "(Re-)creating ${vm} VM (disk: ${disk_path})"
+    VBoxManage import "${ova}" --vsys 0 --vmname "${vm}" --unit "${unit}" --disk "${disk_path}"
+
+    log "Building ${vm} VM"
+    declare -F "build_ievm_ie${1}" && "build_ievm_ie${1}"
+
+    log "Enabling RDP in Port $rdpPort"
+	VBoxManage modifyvm "${vm}" --vrdeport $rdpPort --vrde on --vrdeauthtype null --vrdemulticon on
+
+    log "Creating clean snapshot"
+    VBoxManage snapshot "${vm}" take clean --description "The initial VM state"
 }
 
 build_ievm_xp() {
@@ -248,6 +249,10 @@ build_ievm_ie8() {
     build_ievm_xp 8 "http://download.microsoft.com/download/C/C/0/CC0BD555-33DD-411E-936B-73AC6F95AE11/IE8-WindowsXP-x86-ENU.exe"
 }
 
+cleanup() {
+	rm ${ievms_home}/*.zip ${ievms_home}/*.vbox-extpack ${ievms_home}/*.exe
+}
+
 check_system
 create_home
 check_virtualbox
@@ -260,5 +265,7 @@ do
     log "Building IE${ver} VM"
     build_ievm $ver
 done
+
+# cleanup
 
 log "Done!"
