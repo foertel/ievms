@@ -137,7 +137,7 @@ build_ievm() {
     unit=${unit:-"11"}
     ova=`basename "${archive/_/ - }" .zip`.ova
     url="http://virtualization.modern.ie/vhd/IEKitV1_Final/VirtualBox/OSX/${archive}"
-    rdpPort=${portPrefix:-"60"}$(printf '%02i' ${1})
+    rdpPort=${PORT_PREFIX:-"60"}$(printf '%02i' ${1})
     
     if VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null &&  ! ${REFRESH}
     then
