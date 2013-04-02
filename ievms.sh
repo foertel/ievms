@@ -135,6 +135,12 @@ build_ievm() {
     ova=`basename "${archive/_/ - }" .zip`.ova
     url="http://virtualization.modern.ie/vhd/IEKitV1_Final/VirtualBox/OSX/${archive}"
     rdpPort=${portPrefix:-"60"}$(printf '%02i' ${1})
+    
+    if VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null &&  ! ${REFRESH}
+    then
+        log "VM ${vm} already exists. Skipping ... use REFRESH=TRUE to overwrite."
+        return
+    fi
 
     log "Checking for existing OVA at ${ievms_home}/${ova}"
     if [[ ! -f "${ova}" ]]
@@ -153,8 +159,7 @@ build_ievm() {
         fi
     fi
 
-    log "Checking for existing ${vm} VM"
-    if VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null
+    if VBoxManage showvminfo "${vm}" >/dev/null 2>/dev/null && ${REFRESH}
     then
         log "Deleting old ${vm}"
         VBoxManage unregistervm "${vm}" --delete
@@ -259,7 +264,8 @@ check_virtualbox
 check_ext_pack
 check_unar
 
-all_versions="6 7 8 9 10"
+all_versions="7 8 9 10"
+REFRESH=${REFRESH:-FALSE}
 for ver in ${IEVMS_VERSIONS:-$all_versions}
 do
     log "Building IE${ver} VM"
