@@ -177,7 +177,7 @@ build_ievm() {
     declare -F "build_ievm_ie${1}" && "build_ievm_ie${1}"
 
     log "Enabling RDP in Port $rdpPort"
-	VBoxManage modifyvm "${vm}" --vrdeport $rdpPort --vrde on --vrdeauthtype null --vrdemulticon on
+    VBoxManage modifyvm "${vm}" --natpf1 "rdp,tcp,,$rdpPort,,3389"
 
     log "Creating clean snapshot"
     VBoxManage snapshot "${vm}" take clean --description "The initial VM state"
