@@ -70,17 +70,17 @@ Installation
 
 2. Download and unpack ievms:
 
-   * Install IE versions 7, 8, 9 and 10.
+	* Install IE versions 7, 8, 9 and 10.
 
-        curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | bash
+            curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | bash
 
-   * Install specific IE versions (IE7 and IE9 only for example):
+    * Install specific IE versions (IE7 and IE9 only for example):
 
-        curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | IEVMS_VERSIONS="7 9" bash
+            curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | IEVMS_VERSIONS="7 9" bash
 
     * Re-Install all your expired VMs (you will lose all stored data)
 
-        curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | IEVMS_VERSIONS="7 9" REFRESH=TRUE bash
+            curl -s https://raw.github.com/lightwerk/ievms/master/ievms.sh | IEVMS_VERSIONS="7 9" REFRESH=TRUE bash
 
 3. Start all your VMs
 
